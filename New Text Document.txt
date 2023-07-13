@@ -1,0 +1,117 @@
+import io.qameta.allure.Allure;
+import io.qameta.allure.model.TestResult;
+import io.qameta.allure.widget.Widget;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import com.opencsv.CSVReader;
+
+public class CustomGraphWidget implements Widget {
+
+    private final String csvFilePath;
+
+    public CustomGraphWidget(String csvFilePath) {
+        this.csvFilePath = csvFilePath;
+    }
+
+    private List<String[]> readDataFromCSV() throws IOException {
+        File csvFile = new File(csvFilePath);
+        try (CSVReader csvReader = new CSVReader(new FileReader(csvFile))) {
+            return csvReader.readAll();
+        }
+    }
+
+    public String getName() {
+        return "Custom Widget";
+    }
+
+    public Object getData(TestResult testResult) {
+        // Return the data for the widget based on the test result
+        // Modify this method to provide the specific data associated with the test result
+        // For now, let's assume you have a list of custom data objects
+        List<CustomDataObject> dataList = generateDataListFromCSV();
+        return dataList;
+    }
+
+    public String getContent(TestResult testResult) {
+        try {
+            List<String[]> data = readDataFromCSV();
+            StringBuilder contentBuilder = new StringBuilder();
+
+            for (String[] row : data) {
+                for (String cell : row) {
+                    contentBuilder.append(cell).append(" | ");
+                }
+                contentBuilder.append("\n");
+            }
+
+            return contentBuilder.toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private List<CustomDataObject> generateDataListFromCSV() {
+        try {
+            List<String[]> data = readDataFromCSV();
+            // Process the CSV data and generate a list of custom data objects
+            // Modify this method to convert the CSV data into your custom data objects
+            // For now, let's assume each row in the CSV represents a custom data object
+            List<CustomDataObject> dataList = new ArrayList<>();
+
+            for (String[] row : data) {
+                // Assuming the data object has two properties: time and code
+                String time = row[0];
+                String code = row[1];
+                CustomDataObject dataObject = new CustomDataObject(time, code);
+                dataList.add(dataObject);
+            }
+
+            return dataList;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    public void attachWidgetToAllureReport() {
+        List<CustomDataObject> dataList = generateDataListFromCSV();
+        if (!dataList.isEmpty()) {
+            StringBuilder contentBuilder = new StringBuilder();
+
+            for (CustomDataObject dataObject : dataList) {
+                // Assuming CustomDataObject has a toString() method to represent the object as a string
+                contentBuilder.append(dataObject.toString()).append("\n");
+            }
+
+            String content = contentBuilder.toString();
+            Allure.addAttachment(getName(), "text/plain", content.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    // Usage example
+    public static void main(String[] args) {
+        String csvFilePath = "/path/to/your/csv/file.csv";
+        CustomGraphWidget customWidget = new CustomGraphWidget(csvFilePath);
+        customWidget.attachWidgetToAllureReport();
+    }
+
+    // CustomDataObject class representing your specific data structure
+    private static class CustomDataObject {
+        private final String time;
+        private final String code;
+
+        public CustomDataObject(String time, String code) {
+            this.time = time;
+            this.code = code;
+        }
+
+        @Override
+        public String toString() {
+            return "Time: " + time + " | Code: " + code;
+        }
+    }
+}
