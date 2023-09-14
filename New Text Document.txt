@@ -1,117 +1,1131 @@
-import io.qameta.allure.Allure;
-import io.qameta.allure.model.TestResult;
-import io.qameta.allure.widget.Widget;
-import java.io.File;
+package com.vaf.steps;
+
+import com.vaf.api.APIManager;
+import com.vaf.utils.Assertions;
+import com.vaf.utils.ExcelUtil;
+//import cucumber.api.java.en.And;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.And;
+import io.restassured.response.Response;
+//import org.json.JSONArray;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.testng.annotations.Test;
+
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
-import com.opencsv.CSVReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class CustomGraphWidget implements Widget {
+import static com.vaf.utils.LogUtil.logInfo;
 
-    private final String csvFilePath;
+/**
+ * This class contains step definitions for API testing scenarios using Cucumber.
+ */
+public class ApiSteps {
 
-    public CustomGraphWidget(String csvFilePath) {
-        this.csvFilePath = csvFilePath;
+    APIManager apiManager = new APIManager();  //Create an object of APIManager class
+    ExcelUtil excelUtil=new ExcelUtil();       //Create an object of ExcelUtil class
+    public static Response requestResponse;
+    private String previousResponse = "{}";    //Stored response of latest request
+    private String storedResponse = "{}";   //Stored specific key value pair from response which we want to use in next request
+
+
+    /**
+     * Sends a request with a JSON body for the specified request type, Excel key, and endpoint.
+     *
+     * @param requestType The type of HTTP request (e.g., GET, POST).
+     * @param excelKey The key used to fetch data from the Excel sheet.
+     * @param endPoint The endpoint for the API request.
+     * @throws IOException If an I/O error occurs while reading data from the Excel sheet.
+     */
+    @Test
+    @And("User sends {string} request for key {string} for endpoint {string} in json body")
+    public void User_sends_request_for_key_for_endpoint_in_json_body(String requestType,String excelKey,String endPoint) throws IOException {
+
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(excelKey);
+        int counter = 0;
+        for (String json : requestData) {
+            if (counter == 0) {
+                counter++;
+                continue;
+            }
+            if (!apiManager.ValidJson(json)) {
+                logInfo("Invalid JSON"+"  :"+json);
+            }
+        }
+        String requestBody = APIManager.autoFillResponseValues(storedResponse, requestData.get(1));
+        System.out.println("Body of Request" + requestBody);
+        String updatedRequestBody = APIManager.autoFillResponseValu(requestData.get(4), requestBody);
+        System.out.println("Body of Request" + updatedRequestBody);
+        String requestHeader = APIManager.autoFillResponseValues(storedResponse, requestData.get(2));
+        System.out.println("Headers of Request" + requestHeader);
+        String queryParams = APIManager.autoFillResponseValues(storedResponse, requestData.get(3));
+        System.out.println("Query_params of Request" + queryParams);
+        requestResponse = apiManager.simpleRequestWithJsonBody(requestBody , requestHeader, queryParams,endPoint,requestType,excelKey);
+        previousResponse = requestResponse.body().asString();
+        System.out.println("Response of Request" + requestResponse.body().asString());
     }
 
-    private List<String[]> readDataFromCSV() throws IOException {
-        File csvFile = new File(csvFilePath);
-        try (CSVReader csvReader = new CSVReader(new FileReader(csvFile))) {
-            return csvReader.readAll();
+    /**
+     * Sends a request with a JSON body and specified server for the given request type, Excel key, and endpoint.
+     *
+     * @param requestType The type of HTTP request (e.g., GET, POST).
+     * @param excelKey The key used to fetch data from the Excel sheet.
+     * @param endPoint The endpoint for the API request.
+     * @param server The server(BaseURI) to which the request is sent.
+     * @throws IOException If an I/O error occurs while reading data from the Excel sheet.
+     */
+    @Test
+    @And("User sends {string} request for key {string} for endpoint {string} in json body with server {string}")
+    public void User_sends_request_for_key_for_endpoint_in_json_body_with_server(String requestType,String excelKey,String endPoint,String server) throws IOException {
+
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(excelKey);
+        int counter = 0;
+        for (String json : requestData) {
+            if (counter == 0) {
+                counter++;
+                continue;
+            }
+            if (!apiManager.ValidJson(json)) {
+                logInfo("Invalid JSON"+"  :"+json);
+            }
+        }
+        String requestBody = APIManager.autoFillResponseValues(storedResponse, requestData.get(1));
+        System.out.println("Body of Request" + requestBody);
+        String requestHeader = APIManager.autoFillResponseValues(storedResponse, requestData.get(2));
+        System.out.println("Headers of Request" + requestHeader);
+        String queryParameters = APIManager.autoFillResponseValues(storedResponse, requestData.get(3));
+        System.out.println("Query_params of Request" + queryParameters);
+        requestResponse = apiManager.serverRequestWithJsonBody(requestBody , requestHeader, queryParameters,endPoint,requestType,excelKey,server);
+        previousResponse = requestResponse.body().asString();
+        System.out.println("Response of Request" + requestResponse.body().asString());
+    }
+
+    /**
+     * Sends a request with a URL-encoded body for the given request type, Excel key, and endpoint.
+     *
+     * @param requestType The type of HTTP request (e.g., GET, POST).
+     * @param excelKey The key used to fetch data from the Excel sheet.
+     * @param endPoint The endpoint for the API request.
+     * @throws IOException If an I/O error occurs while reading data from the Excel sheet.
+     */
+    @Test
+    @And("User sends {string} request for key {string} for endpoint {string} in urlencoded body")
+    public void User_sends_request_for_key_for_endpoint_in_urlencoded_body(String requestType,String excelKey,String endPoint) throws IOException {
+
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(excelKey);
+        int counter = 0;
+        for (String json : requestData) {
+            if (counter == 0) {
+                counter++;
+                continue;
+            }
+            if (!apiManager.ValidJson(json)) {
+                logInfo("Invalid JSON"+"  :"+json);
+            }
+        }
+        String requestBody = APIManager.autoFillResponseValues(storedResponse, requestData.get(1));
+        System.out.println("Body of Request" + requestBody);
+        String requestHeader = APIManager.autoFillResponseValues(storedResponse, requestData.get(2));
+        System.out.println("Headers of Request" + requestHeader);
+        String queryParameters = APIManager.autoFillResponseValues(storedResponse, requestData.get(3));
+        System.out.println("Query_params of Request" + queryParameters);
+        requestResponse = apiManager.simpleRequestWithUrlEncodedBody(requestBody , requestHeader, queryParameters,endPoint,requestType,excelKey);
+        previousResponse = requestResponse.body().asString();
+        System.out.println("Response of Request" + requestResponse.body().asString());
+    }
+
+    /**
+     * Sends a request with a URL-encoded body and a specific server for the given request type, Excel key, endpoint, and server.
+     *
+     * @param requestType The type of HTTP request (e.g., GET, POST).
+     * @param excelKey The key used to fetch data from the Excel sheet.
+     * @param endPoint The endpoint for the API request.
+     * @param server The server(BaseURI) to which the request is sent.
+     * @throws IOException If an I/O error occurs while reading data from the Excel sheet.
+     */
+    @Test
+    @And("User sends {string} request for key {string} for endpoint {string} in urlencoded body with server {string}")
+    public void User_sends_request_for_key_for_endpoint_in_urlencoded_body_with_server(String requestType,String excelKey,String endPoint,String server) throws IOException {
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(excelKey);
+
+        int counter = 0;
+
+        for (String json : requestData) {
+            if (counter == 0) {
+                counter++;
+                continue;
+            }
+            if (!apiManager.ValidJson(json)) {
+                logInfo("Invalid JSON"+"  :"+json);
+            }
+        }
+        String requestBody = APIManager.autoFillResponseValues(storedResponse, requestData.get(1));
+        System.out.println("Body of Request" + requestBody);
+        String requestHeader = APIManager.autoFillResponseValues(storedResponse, requestData.get(2));
+        System.out.println("Headers of Request" + requestHeader);
+        String queryParameters = APIManager.autoFillResponseValues(storedResponse, requestData.get(3));
+        System.out.println("Query_params of Request" + queryParameters);
+        requestResponse = apiManager.serverRequestWithUrlEncodedBody(requestBody , requestHeader, queryParameters,endPoint,requestType,excelKey,server);
+        previousResponse = requestResponse.body().asString();
+        System.out.println("Response of Request" + requestResponse.body().asString());
+    }
+
+    /**
+     * Stores a key-value pair from a JSON response.
+     *
+     * @param keyPath The key path to extract the value from the JSON response.
+     */
+    @Then("Store key value pair of {string} this path")
+    public void Store_key_value_pair_of_this_path(String keyPath)  {
+        // Extract a value from a JSON response using the given key path
+        String keyValue = APIManager.extractValueFromJson(requestResponse.body().asString(), keyPath);
+
+        // Parse the previousResponseJSON
+        org.json.JSONObject previousResponseJson = new org.json.JSONObject(storedResponse);
+
+        // Split the key path to obtain the actual key
+        String[] keys = keyPath.split("\\.");
+        String actualKey = keys[keys.length - 1];
+
+        // Update the JSON object with the new key-value pair
+        previousResponseJson.put(actualKey, keyValue);
+
+        // Convert the 'previousResponseJson' object back to a string and store it in 'storedResponse'
+        storedResponse = previousResponseJson.toString();
+        System.out.println("Stored_Response"+ storedResponse);
+    }
+
+    /**
+     * Validates that the response matches the JSON stored in the provided file.
+     *
+     * @param filePath The path to the file containing the JSON to compare the response against.
+     * @throws IOException If an I/O exception occurs during file reading.
+     */
+    @Then("validate that response will be same as stored in {string}")
+    public void validate_that_response_will_be_same_as_stored_in(String filePath) throws IOException {
+        // Initialize JSON parser and stored response object
+        JSONParser jsonParser = new JSONParser();
+        Object storedResponse = null;
+
+        // Parse the stored response JSON from the provided file
+        try (FileReader reader = new FileReader(ExcelUtil.getFileFromResourceFolder(filePath))) {
+            storedResponse = jsonParser.parse(reader);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Parse the actual response JSON
+        JSONParser responseParser = new JSONParser();
+        Object responseObject;
+
+        try {
+            responseObject = responseParser.parse(previousResponse);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            responseObject = null;
+        }
+
+        // Assertions to compare the actual response with the stored response
+        Assertions.assertTrue(responseObject != null && responseObject.equals(storedResponse),"Response Matched or Not",null);
+
+        // Compare the actual response with the stored response
+        if (responseObject != null && responseObject.equals(storedResponse)) {
+            logInfo("Response matches the stored response.");
+            System.out.println("Response matches the stored response.");
+        } else {
+            logInfo("Response does not match the stored response.");
+            System.out.println("Response does not match the stored response.");
         }
     }
 
-    public String getName() {
-        return "Custom Widget";
-    }
+    /**
+     * Sends multiple requests with varying data based on placeholders in JSON body.
+     *
+     * @param requestType       The type of request (e.g., GET, POST, etc.).
+     * @param compoundKey       The compound key containing sheet names and data keys.
+     * @param endPoint          The endpoint URL for the API request.
+     * @throws IOException      If an I/O exception occurs during data retrieval or API request.
+     */
+    @Test
+    @And("user send multiple {string} requests for Keys {string} for endpoint {string} in json body")
+    public void user_send_multiple_requests_for_Keys_for_endpoint_in_json_body(String requestType, String compoundKey, String endPoint) throws IOException {
+        String requestDataSheetName = compoundKey.split("[.]")[0];
+        String iterativeDataSheetName = compoundKey.split("[.]")[1];
+        String excelDataKey = compoundKey.split("[.]")[2];
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(requestDataSheetName + "." + excelDataKey);
+        int rowCount = (int) ExcelUtil.getRowCount(iterativeDataSheetName);
+        for (int i = 0; i < rowCount; i++) {
+            ArrayList<String> modifiedData = new ArrayList<>();
 
-    public Object getData(TestResult testResult) {
-        // Return the data for the widget based on the test result
-        // Modify this method to provide the specific data associated with the test result
-        // For now, let's assume you have a list of custom data objects
-        List<CustomDataObject> dataList = generateDataListFromCSV();
-        return dataList;
-    }
+            for (String json : requestData) {
+                Pattern pattern = Pattern.compile("#\\{([^}]+)\\}"); // Regular expression pattern to match #{placeholder}
+                Matcher matcher = pattern.matcher(json);
 
-    public String getContent(TestResult testResult) {
-        try {
-            List<String[]> data = readDataFromCSV();
-            StringBuilder contentBuilder = new StringBuilder();
-
-            for (String[] row : data) {
-                for (String cell : row) {
-                    contentBuilder.append(cell).append(" | ");
+                while (matcher.find()) {
+                    String placeholder = matcher.group(1); // Extracting the placeholder without #{}
+                    List<String> values = ExcelUtil.valuesFor(iterativeDataSheetName + "." + placeholder);
+                    if (!values.isEmpty() && i < values.size()) {
+                        String replacement = values.get(i); // Get the value corresponding to the current index
+                        json = json.replaceAll("#\\{" + placeholder + "\\}", replacement);
+                    }
                 }
-                contentBuilder.append("\n");
+
+                modifiedData.add(json);
             }
 
-            return contentBuilder.toString();
-        } catch (IOException e) {
+            requestResponse = apiManager.simpleRequestWithJsonBody(modifiedData.get(1), modifiedData.get(2), modifiedData.get(3), endPoint, requestType,requestDataSheetName + "." + excelDataKey);
+            previousResponse = requestResponse.body().asString();
+            System.out.println("Response of Request: " + previousResponse);
+        }
+    }
+
+
+    /**
+     * Sends multiple requests with varying data based on placeholders in JSON body to the specified endpoint using a server.
+     *
+     * @param requestType       The type of request (e.g., GET, POST, etc.).
+     * @param compoundKey       The compound key containing sheet names and data keys.
+     * @param endPoint          The endpoint URL for the API request.
+     * @param server            The server(BaseURI) to send the request to.
+     * @throws IOException      If an I/O exception occurs during data retrieval or API request.
+     */
+    @Test
+    @And("user send multiple {string} requests for Keys {string} for endpoint {string} in json body with server {string}")
+    public void user_send_multiple_requests_for_Keys_for_endpoint_in_json_body_with_server(String requestType, String compoundKey, String endPoint,String server) throws IOException {
+        String requestDataSheetName = compoundKey.split("[.]")[0];
+        String iterativeDataSheetName = compoundKey.split("[.]")[1];
+        String excelDataKey = compoundKey.split("[.]")[2];
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(requestDataSheetName + "." + excelDataKey);
+        int rowCount = (int) ExcelUtil.getRowCount(iterativeDataSheetName);
+
+        for (int i = 0; i < rowCount; i++) {
+            ArrayList<String> modifiedData = new ArrayList<>();
+
+            for (String json : requestData) {
+                Pattern pattern = Pattern.compile("#\\{([^}]+)\\}"); // Regular expression pattern to match #{placeholder}
+                Matcher matcher = pattern.matcher(json);
+
+                while (matcher.find()) {
+                    String placeholder = matcher.group(1); // Extracting the placeholder without #{}
+                    List<String> values = ExcelUtil.valuesFor(iterativeDataSheetName + "." + placeholder);
+                    if (!values.isEmpty() && i < values.size()) {
+                        String replacement = values.get(i); // Get the value corresponding to the current index
+                        json = json.replaceAll("#\\{" + placeholder + "\\}", replacement);
+                    }
+                }
+
+                modifiedData.add(json);
+            }
+
+            requestResponse = apiManager.serverRequestWithJsonBody(modifiedData.get(1), modifiedData.get(2), modifiedData.get(3), endPoint, requestType,requestDataSheetName + "." + excelDataKey,server);
+            previousResponse = requestResponse.body().asString();
+            System.out.println("Response of Request: " + previousResponse);
+        }
+    }
+
+    /**
+     * Sends multiple requests with varying data based on placeholders in URL-encoded body.
+     *
+     * @param requestType       The type of request (e.g., GET, POST, etc.).
+     * @param compoundKey       The compound key containing sheet names and data keys.
+     * @param endPoint          The endpoint URL for the API request.
+     * @throws IOException      If an I/O exception occurs during data retrieval or API request.
+     */
+    @Test
+    @And("user send multiple {string} requests for Keys {string} for endpoint {string} in urlencoded body")
+    public void user_send_multiple_requests_for_Keys_for_endpoint_in_urlencoded_body(String requestType, String compoundKey, String endPoint) throws IOException {
+        String requestDataSheetName = compoundKey.split("[.]")[0];
+        String iterativeDataSheetName = compoundKey.split("[.]")[1];
+        String excelDataKey = compoundKey.split("[.]")[2];
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(requestDataSheetName + "." + excelDataKey);
+        int rowCount = (int) ExcelUtil.getRowCount(iterativeDataSheetName);
+
+        for (int i = 0; i < rowCount; i++) {
+            ArrayList<String> modifiedData = new ArrayList<>();
+
+            for (String json : requestData) {
+                Pattern pattern = Pattern.compile("#\\{([^}]+)\\}"); // Regular expression pattern to match #{placeholder}
+                Matcher matcher = pattern.matcher(json);
+
+                while (matcher.find()) {
+                    String placeholder = matcher.group(1); // Extracting the placeholder without #{}
+                    List<String> values = ExcelUtil.valuesFor(iterativeDataSheetName + "." + placeholder);
+                    if (!values.isEmpty() && i < values.size()) {
+                        String replacement = values.get(i); // Get the value corresponding to the current index
+                        json = json.replaceAll("#\\{" + placeholder + "\\}", replacement);
+                    }
+                }
+
+                modifiedData.add(json);
+            }
+
+            requestResponse = apiManager.simpleRequestWithUrlEncodedBody(modifiedData.get(1), modifiedData.get(2), modifiedData.get(3), endPoint, requestType,requestDataSheetName + "." + excelDataKey);
+            previousResponse = requestResponse.body().asString();
+            System.out.println("Response of Request: " + previousResponse);
+        }
+    }
+
+    /**
+     * Sends multiple requests with varying data based on placeholders in URL-encoded body to the specified endpoint using a server.
+     *
+     * @param requestType       The type of request (e.g., GET, POST, etc.).
+     * @param compoundKey       The compound key containing sheet names and data keys.
+     * @param endPoint          The endpoint URL for the API request.
+     * @param server            The server to send the request to.
+     * @throws IOException      If an I/O exception occurs during data retrieval or API request.
+     */
+    @Test
+    @And("user send multiple {string} requests for Keys {string} for endpoint {string} in urlencoded body with server {string}")
+    public void user_send_multiple_requests_for_Keys_for_endpoint_in_urlencoded_body_with_server(String requestType, String compoundKey, String endPoint,String server) throws IOException {
+        String requestDataSheetName = compoundKey.split("[.]")[0];
+        String iterativeDataSheetName = compoundKey.split("[.]")[1];
+        String excelDataKey = compoundKey.split("[.]")[2];
+        ArrayList<String> data = (ArrayList<String>) excelUtil.getData(requestDataSheetName + "." + excelDataKey);
+        int rowCount = (int) ExcelUtil.getRowCount(iterativeDataSheetName);
+
+        for (int i = 0; i < rowCount; i++) {
+            ArrayList<String> modifiedData = new ArrayList<>();
+
+            for (String json : data) {
+                Pattern pattern = Pattern.compile("#\\{([^}]+)\\}"); // Regular expression pattern to match #{placeholder}
+                Matcher matcher = pattern.matcher(json);
+
+                while (matcher.find()) {
+                    String placeholder = matcher.group(1); // Extracting the placeholder without #{}
+                    List<String> values = ExcelUtil.valuesFor(iterativeDataSheetName + "." + placeholder);
+                    if (!values.isEmpty() && i < values.size()) {
+                        String replacement = values.get(i); // Get the value corresponding to the current index
+                        json = json.replaceAll("#\\{" + placeholder + "\\}", replacement);
+                    }
+                }
+
+                modifiedData.add(json);
+            }
+
+            requestResponse = apiManager.serverRequestWithUrlEncodedBody(modifiedData.get(1), modifiedData.get(2), modifiedData.get(3), endPoint, requestType,requestDataSheetName + "." + excelDataKey,server);
+            previousResponse = requestResponse.body().asString();
+            System.out.println("Response of Request: " + previousResponse);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.vaf.api;
+
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.vaf.utils.ConfigUtil;
+import com.vaf.utils.ExcelUtil;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
+import io.restassured.specification.RequestSpecification;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.Is;
+import org.json.JSONArray;
+import org.json.JSONException;
+import  org.json.JSONObject;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.google.gson.JsonObject;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+public class APIManager {
+    ExcelUtil excelUtil=new ExcelUtil(); //Create an object of ExcelUtil Class
+
+    /**
+     * Converts a JSON string to a HashMap where keys represent the paths of JSON properties
+     * and values represent the corresponding values.
+     *
+     * @param jsonStr The JSON string to convert.
+     * @return A HashMap containing the key-value pairs from the JSON string.
+     */
+    public static HashMap<String, String> jsonToMap(String jsonStr) {
+        HashMap<String, String> map = new HashMap<>();
+
+        try {
+            // Check if the response starts with "[" (JSON array)
+            if (jsonStr.startsWith("[")) {
+                org.json.JSONArray jsonArray = new org.json.JSONArray(jsonStr);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    jsonToMapHelper(jsonObject, "response[" + i + "]", map);
+                }
+            } else {
+                // Response starts with "{" (JSON object)
+                jsonToMapHelper(new JSONObject(jsonStr), "", map);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return map;
+    }
+
+    /**
+     * Converts a JSON string to a HashMap where keys represent the paths of JSON properties
+     * and values represent the corresponding values as Objects.
+     *
+     * @param jsonStr The JSON string to convert.
+     * @return A HashMap containing the key-value pairs from the JSON string.
+     */
+    public static HashMap<String, Object> jsonToMaps(String jsonStr) {
+        HashMap<String, Object> map = new HashMap<>();
+
+        try {
+            // Check if the response starts with "[" (JSON array)
+            if (jsonStr.startsWith("[")) {
+                org.json.JSONArray jsonArray = new org.json.JSONArray(jsonStr);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    jsonToMapHelpers(jsonObject, "response[" + i + "]", map);
+                }
+            } else {
+                // Response starts with "{" (JSON object)
+                jsonToMapHelpers(new JSONObject(jsonStr), "", map);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return map;
+    }
+
+    /**
+     * Recursively converts a JSON object or array into a HashMap with key-value pairs.
+     *
+     * @param jsonObject The JSON object to be converted.
+     * @param parentKey  The parent key for the current JSON object.
+     * @param map        The HashMap to store the converted key-value pairs in (String,Object).
+     */
+    private static void jsonToMapHelpers(JSONObject jsonObject, String parentKey, HashMap<String, Object> map) {
+        // Get the keys of the JSON object
+        Iterator<?> keys = jsonObject.keys();
+        // Iterate through the keys
+        while (keys.hasNext()) {
+            String key = (String) keys.next();
+            String fullKey = parentKey.isEmpty() ? key : parentKey + "." + key;
+            Object value = jsonObject.get(key);
+        // Check if the value is a nested JSON object
+            if (value instanceof JSONObject) {
+                jsonToMapHelpers((JSONObject) value, fullKey, map);
+            }
+            // Check if the value is a JSON array
+            else if (value instanceof org.json.JSONArray) {
+                org.json.JSONArray jsonArray = (JSONArray) value;
+                List<Object> arrayElements = new ArrayList<>();
+                // Iterate through the array elements
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    Object arrayElement = jsonArray.get(i);
+                    if (arrayElement instanceof JSONObject) {
+                        // Process nested JSON object in the array
+                        HashMap<String, Object> nestedMap = new HashMap<>();
+                        jsonToMapHelpers((JSONObject) arrayElement, fullKey + "[" + i + "]", nestedMap);
+                        arrayElements.add(nestedMap);
+                    } else {
+                        // Add non-object array element
+                        arrayElements.add(arrayElement);
+                    }
+                }
+                // Put the array elements in the map
+                map.put(fullKey, arrayElements);
+            } else {
+                // Put the value in the map
+                map.put(fullKey, value);
+            }
+        }
+    }
+
+    /**
+     * Recursively converts a JSON object or array into a HashMap with key-value pairs.
+     *
+     * @param jsonObject The JSON object to be converted.
+     * @param parentKey  The parent key for the current JSON object.
+     * @param map        The HashMap to store the converted key-value pairs in (String,String).
+     */
+    private static void jsonToMapHelper(JSONObject jsonObject, String parentKey, HashMap<String, String> map)  {
+        // Get the keys of the JSON object
+        Iterator<?> keys = jsonObject.keys();
+        // Iterate through the keys
+        while (keys.hasNext()) {
+            String key = (String) keys.next();
+            String fullKey = parentKey.isEmpty() ? key : parentKey + "." + key;
+            Object value = jsonObject.get(key);
+        // Check if the value is a nested JSON object
+            if (value instanceof JSONObject) {
+                // Recursively process the nested JSON object
+                jsonToMapHelper((JSONObject) value, fullKey, map);
+            }
+            // Check if the value is a JSON array
+            else if (value instanceof org.json.JSONArray) {
+                org.json.JSONArray jsonArray = (JSONArray) value;
+                // Iterate through the array elements
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    Object arrayElement = jsonArray.get(i);
+                    if (arrayElement instanceof JSONObject) {
+                        // Process nested JSON object in the array
+                        jsonToMapHelper((JSONObject) arrayElement, fullKey + "[" + i + "]", map);
+                    } else {
+                        // Put non-object array element in the map
+                        map.put(fullKey + "[" + i + "]", arrayElement.toString());
+                    }
+                }
+            } else {
+                // Put the value in the map
+                map.put(fullKey, value.toString());
+            }
+        }
+    }
+
+    /**
+     * Extracts a value from a JSON response using the given key path.
+     *
+     * @param jsonResponse The JSON response from which to extract the value.
+     * @param keyPath      The key path to the desired value in the JSON.
+     * @return The extracted value as a String, or null if extraction fails.
+     */
+    public static String extractValueFromJson(String jsonResponse, String keyPath) {
+        try {
+            // Create a default configuration for JsonPath
+            Configuration configuration = Configuration.defaultConfiguration();
+            // Parse the JSON response using JsonPath and extract the value using the provided key path
+            Object jsonValue = JsonPath.using(configuration).parse(jsonResponse).read(keyPath);
+            // Convert the extracted value to a string and return it
+            return jsonValue.toString();
+        } catch (Exception e) {
+            // If there's an exception during the extraction process, print the stack trace and return null
             e.printStackTrace();
             return null;
         }
     }
 
-    private List<CustomDataObject> generateDataListFromCSV() {
+    /**
+     * Validates whether the given string is a valid JSON object or array.
+     *
+     * @param jsonStr The string to be validated as JSON.
+     * @return True if the string is a valid JSON object or array, otherwise false.
+     */
+    public static boolean ValidJson(String jsonStr) {
         try {
-            List<String[]> data = readDataFromCSV();
-            // Process the CSV data and generate a list of custom data objects
-            // Modify this method to convert the CSV data into your custom data objects
-            // For now, let's assume each row in the CSV represents a custom data object
-            List<CustomDataObject> dataList = new ArrayList<>();
+            // Parse the input JSON string using JsonParser and create a JsonElement
+            JsonElement jsonElement = JsonParser.parseString(jsonStr);
+            // Check if the parsed element is a JSON object or a JSON array
+            // Return true if it's either an object or an array, indicating that the JSON is valid
+            return jsonElement.isJsonObject() || jsonElement.isJsonArray();
+        } catch (Exception e) {
+            // If an exception occurs during parsing, return false indicating that the JSON is invalid
+            return false;
+        }
+    }
 
-            for (String[] row : data) {
-                // Assuming the data object has two properties: time and code
-                String time = row[0];
-                String code = row[1];
-                CustomDataObject dataObject = new CustomDataObject(time, code);
-                dataList.add(dataObject);
+    /**
+     * Auto-fill response values in a new request body based on a mapping of keys and values.
+     *
+     * @param oldRequestBody The original request body containing key-value pairs.
+     * @param newRequestBody The new request body with placeholders to be filled.
+     * @return The new request body with placeholders replaced by actual values.
+     */
+    public static String autoFillResponseValues(String oldRequestBody, String newRequestBody)
+    {
+        // Convert the old request body JSON string to a HashMap using the jsonToMap method
+        HashMap<String, String> body = (HashMap<String, String>) jsonToMap(oldRequestBody);
+        // Define a pattern to match placeholders in the new request body
+        Pattern pattern = Pattern.compile("#\\{(.*?)\\}", Pattern.CASE_INSENSITIVE);
+        // Create a matcher to find placeholders in the new request body
+        Matcher matcher = pattern.matcher(newRequestBody);
+        // Initialize the index for capturing groups in the pattern
+        int index = 1;
+        // Iterate through the placeholders found in the new request body
+        while (matcher.find()) {
+            // Get the placeholder key to replace
+            String keytoReplace = matcher.group(index);
+            // Get the value associated with the key from the old request body HashMap
+            String valueToReplace = body.get(keytoReplace);
+            // Check if valueToReplace is null, if so, keep the placeholder as is
+            if (valueToReplace != null) {
+                // Replace the placeholder in the new request body with the corresponding value
+                newRequestBody = newRequestBody.replaceAll("#\\{" + keytoReplace + "\\}", "" + valueToReplace);
             }
+        }
+        // Return the new request body with placeholders replaced by values
+        return newRequestBody;
+    }
 
-            return dataList;
-        } catch (IOException e) {
+    static String activeEnvironment=ConfigUtil.configGetString("activeEnv");
+
+    public static String autoFillResponseValue(String oldRequestBody, String newRequestBody) {
+        try {
+            // Parse the old request body as a JSON array
+            JSONArray oldArray = new JSONArray(oldRequestBody);
+            // Define a pattern to match placeholders in the new request body
+            Pattern pattern = Pattern.compile("#\\{(.*?)\\}", Pattern.CASE_INSENSITIVE);
+            // Create a matcher to find placeholders in the new request body
+            Matcher matcher = pattern.matcher(newRequestBody);
+            // Initialize the index for capturing groups in the pattern
+            int index = 1;
+            // Iterate through the placeholders found in the new request body
+            while (matcher.find()) {
+                // Get the placeholder key to replace
+                String keyToReplace = matcher.group(index);
+                // Iterate through the elements in the JSON array
+                for (int i = 0; i < oldArray.length(); i++) {
+                    JSONObject jsonObject = oldArray.getJSONObject(i);
+                    // Check if the key exists in the JSON object
+                    if (jsonObject.has(keyToReplace)) {
+                        String valueToReplace = jsonObject.getString(keyToReplace);
+                        // Replace the placeholder in the new request body with the corresponding value
+                        newRequestBody = newRequestBody.replaceAll("#\\{" + keyToReplace + "\\}", "" + valueToReplace);
+                        // Break the loop since we found a matching key
+                        break;
+                    }
+                }
+            }
+            // Return the new request body with placeholders replaced by values
+            return newRequestBody;
+        } catch (Exception e) {
             e.printStackTrace();
-            return Collections.emptyList();
+            // Handle any exceptions that occur during parsing or replacement
+            return newRequestBody; // or throw an exception if needed
         }
     }
 
-    public void attachWidgetToAllureReport() {
-        List<CustomDataObject> dataList = generateDataListFromCSV();
-        if (!dataList.isEmpty()) {
-            StringBuilder contentBuilder = new StringBuilder();
 
-            for (CustomDataObject dataObject : dataList) {
-                // Assuming CustomDataObject has a toString() method to represent the object as a string
-                contentBuilder.append(dataObject.toString()).append("\n");
+    public static String autoFillResponseValu(String oldRequestBody, String newRequestBody) {
+        try {
+            // Parse the old request body as a JSON array
+            JSONArray oldArray = new JSONArray(oldRequestBody);
+            // Define a pattern to match placeholders in the new request body
+            Pattern pattern = Pattern.compile("#\\{(.*?)\\}", Pattern.CASE_INSENSITIVE);
+            // Create a matcher to find placeholders in the new request body
+            Matcher matcher = pattern.matcher(newRequestBody);
+            // Initialize the index for capturing groups in the pattern
+            int index = 1;
+            // Iterate through the placeholders found in the new request body
+            while (matcher.find()) {
+                // Get the placeholder key to replace
+                String keyToReplace = matcher.group(index);
+                // Find the JSON object that matches the activeEnvironment
+                for (int i = 0; i < oldArray.length(); i++) {
+                    JSONObject jsonObject = oldArray.getJSONObject(i);
+                    if (jsonObject.has("Environment") && jsonObject.getString("Environment").equals(activeEnvironment)) {
+                        // Check if the key exists in the JSON object
+                        if (jsonObject.has(keyToReplace)) {
+                            String valueToReplace = jsonObject.getString(keyToReplace);
+                            // Replace the placeholder in the new request body with the corresponding value
+                            newRequestBody = newRequestBody.replaceAll("#\\{" + keyToReplace + "\\}", "" + valueToReplace);
+                        }
+                        // Break the loop since we found the matching JSON object
+                        break;
+                    }
+                }
+            }
+            // Return the new request body with placeholders replaced by values
+            return newRequestBody;
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Handle any exceptions that occur during parsing or replacement
+            return newRequestBody; // or throw an exception if needed
+        }
+    }
+
+    /**
+     * Sends a API request with a JSON request body, along with headers,
+     * query parameters, and authentication methods based on the provided parameters.
+     *
+     * @param requestBody          JSON request body as a String.
+     * @param requestHeader        Headers for the request in JSON format as a String.
+     * @param requestQueryParameters Query parameters for the request in JSON format as a String.
+     * @param endPoint             The endpoint of the API request.
+     * @param requestType          The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @param excelKey             The key used to retrieve necessary data from an Excel source.
+     * @return A Response object containing the API response data.
+     * @throws IOException if an I/O exception occurs while fetching data from an Excel source.
+     */
+    public Response simpleRequestWithJsonBody(String requestBody, String requestHeader, String requestQueryParameters, String endPoint, String requestType, String excelKey) throws IOException {
+        // Get data from Excel based on the provided excelKey
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(excelKey);
+        // Get the base URI and endpoint from configuration
+        String baseUri = ConfigUtil.baseUri("auth");
+        String ep = ConfigUtil.getEndpoint(endPoint);
+        System.out.println("base: " + baseUri + ", endpoint: " + ep);
+        // Convert request header and query parameters to Map using jsonToMap method
+        Map<String, String> header = jsonToMap(requestHeader);
+        Map<String, String> queryParameters=jsonToMap(requestQueryParameters);
+        // Build the request specification using RestAssured
+        RequestSpecification request = RestAssured.given()
+                .baseUri(baseUri)
+                .queryParams(queryParameters)
+                .headers(header)
+                .body(requestBody);
+
+        Response response;
+        // Check if authentication data is provided in the requestData
+        if (requestData.get(4) != null && !requestData.get(4).isEmpty()) {
+            // Parse authentication JSON from the requestData
+            JsonObject json = JsonParser.parseString(requestData.get(4)).getAsJsonObject();
+            String username = json.get("Username").getAsString();
+            String password = json.get("Password").getAsString();
+            boolean isPreemptive = json.has("Preemptive") && json.get("Preemptive").getAsBoolean();
+            // Check if preemptive authentication is required
+            if (isPreemptive) {
+                response = sendRequestWithPreemptiveAuth(request, ep, requestType, username, password);
+            } else {
+                response = sendRequestWithBasicAuth(request, ep, requestType, username, password);
+            }
+        } else {
+            // Send request without authentication
+            response = sendRequestWithoutAuth(request, ep, requestType);
+        }
+
+        return response;
+    }
+
+
+
+    /**
+     * Sends a API request with a JSON request body, along with headers,
+     * query parameters, and authentication methods based on the provided parameters.
+     *
+     * @param requestBody          JSON request body as a String.
+     * @param requestHeader        Headers for the request in JSON format as a String.
+     * @param requestQueryParameters Query parameters for the request in JSON format as a String.
+     * @param endPoint             The endpoint of the API request.
+     * @param requestType          The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @param excelKey             The key used to retrieve necessary data from an Excel source.
+     * @param server               The server identifier to determine the base URI configuration.
+     * @return A Response object containing the API response data.
+     * @throws IOException if an I/O exception occurs while fetching data from an Excel source.
+     */
+    public Response serverRequestWithJsonBody(String requestBody, String requestHeader, String requestQueryParameters, String endPoint, String requestType, String excelKey, String server) throws IOException {
+        ArrayList<String> requestData = (ArrayList<String>) excelUtil.getData(excelKey);
+        String baseUri = ConfigUtil.baseUri(server);
+        String ep = ConfigUtil.getEndpoint(endPoint);
+        System.out.println("base: " + baseUri + ", endpoint: " + ep);
+        Map<String, String> header = jsonToMap(requestHeader);
+        Map<String, String> queryParameters=jsonToMap(requestQueryParameters);
+        RequestSpecification request = RestAssured.given()
+                .baseUri(baseUri)
+                .queryParams(queryParameters)
+                .headers(header)
+                .body(requestBody);
+
+        Response response;
+        String environment=ConfigUtil.configGetString("activeEnv");
+        System.out.println("Active Environment"+environment);
+        if (requestData.get(4) != null && !requestData.get(4).isEmpty()) {
+            JsonArray jsonArray = JsonParser.parseString(requestData.get(4)).getAsJsonArray();
+
+            // Find the JSON object with the matching "Environment" value
+            JsonObject selectedEnvObject = null;
+            for (JsonElement element : jsonArray) {
+                JsonObject jsonObject = element.getAsJsonObject();
+                if (jsonObject.has("Environment") && jsonObject.get("Environment").getAsString().equalsIgnoreCase(environment)) {
+                    selectedEnvObject = jsonObject;
+                    break; // Found the matching environment, exit the loop
+                }
             }
 
-            String content = contentBuilder.toString();
-            Allure.addAttachment(getName(), "text/plain", content.getBytes(StandardCharsets.UTF_8));
+            if (selectedEnvObject != null) {
+                String username = selectedEnvObject.get("Username").getAsString();
+                String password = selectedEnvObject.get("Password").getAsString();
+                System.out.println("Usersname"+username);
+                String preemptive = selectedEnvObject.get("Preemptive").getAsString();
+                System.out.println("Preemptive"+preemptive);
+                boolean isPreemptive = selectedEnvObject.has("preemptive") && selectedEnvObject.get("Preemptive").getAsBoolean();
+                if (isPreemptive) {
+                    System.out.println("isPreemptive"+isPreemptive);
+                    response = sendRequestWithPreemptiveAuth(request, ep, requestType, username, password);
+                } else {
+                    System.out.println("NotisPreemptive"+isPreemptive);
+                    response = sendRequestWithBasicAuth(request, ep, requestType, username, password);
+                }
+            } else {
+                // Handle the case where no matching environment was found
+                throw new RuntimeException("Environment not found: " + environment);
+            }
+        } else {
+            response = sendRequestWithoutAuth(request, ep, requestType);
         }
+
+        return response;
     }
 
-    // Usage example
-    public static void main(String[] args) {
-        String csvFilePath = "/path/to/your/csv/file.csv";
-        CustomGraphWidget customWidget = new CustomGraphWidget(csvFilePath);
-        customWidget.attachWidgetToAllureReport();
+
+
+    /**
+     * Sends a API request with URL-encoded request body, along with headers,
+     * query parameters, and authentication methods based on the provided parameters.
+     *
+     * @param requestBody          JSON request body as a String.
+     * @param requestHeader        Headers for the request in JSON format as a String.
+     * @param requestQueryParameters Query parameters for the request in JSON format as a String.
+     * @param endPoint             The endpoint of the API request.
+     * @param requestType          The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @param excelKey             The key used to retrieve necessary data from an Excel source.
+     * @return A Response object containing the API response data.
+     * @throws IOException if an I/O exception occurs while fetching data from an Excel source.
+     */
+    public Response simpleRequestWithUrlEncodedBody(String requestBody, String requestHeader, String requestQueryParameters, String endPoint, String requestType, String excelKey) throws IOException {
+        ArrayList<String> data1 = (ArrayList<String>) excelUtil.getData(excelKey);
+        String baseUri = ConfigUtil.baseUri("auth");
+        String ep = ConfigUtil.getEndpoint(endPoint);
+        System.out.println("base: " + baseUri + ", endpoint: " + ep);
+        Map<String, String> header = jsonToMap(requestHeader);
+        Map<String, String> body = jsonToMap(requestBody);
+        Map<String, String> queryParameters=jsonToMap(requestQueryParameters);
+        StringBuilder postData = new StringBuilder();
+        //Convert json body to URLEncoded body
+        for (Map.Entry<String, String> entry : body.entrySet()) {
+            if (postData.length() != 0) {
+                postData.append('&');
+            }
+            postData.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+            postData.append('=');
+            postData.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+        }
+        RequestSpecification request = RestAssured.given()
+                .baseUri(baseUri)
+                .queryParams(queryParameters)
+                .headers(header)
+                .body(postData.toString())
+                        ;
+
+        Response response;
+        System.out.println("URL ENCODED BODY"+postData);
+        if (data1.get(4) != null && !data1.get(4).isEmpty()) {
+            JsonObject json = JsonParser.parseString(data1.get(4)).getAsJsonObject();
+            String username = json.get("Username").getAsString();
+            String password = json.get("Password").getAsString();
+            boolean isPreemptive = json.has("Preemptive") && json.get("Preemptive").getAsBoolean();
+
+            if (isPreemptive) {
+                response = sendRequestWithPreemptiveAuth(request, ep, requestType, username, password);
+            } else {
+                response = sendRequestWithBasicAuth(request, ep, requestType, username, password);
+            }
+        } else {
+            response = sendRequestWithoutAuth(request, ep, requestType);
+        }
+
+        return response;
     }
 
-    // CustomDataObject class representing your specific data structure
-    private static class CustomDataObject {
-        private final String time;
-        private final String code;
+    /**
+     * Sends a API request with URL-encoded request body, along with headers,
+     * query parameters, and authentication methods based on the provided parameters and server.
+     *
+     * @param requestBody          JSON request body as a String.
+     * @param requestHeader        Headers for the request in JSON format as a String.
+     * @param requestQueryParameters Query parameters for the request in JSON format as a String.
+     * @param endPoint             The endpoint of the API request.
+     * @param requestType          The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @param excelKey             The key used to retrieve necessary data from an Excel source.
+     * @param server               The server identifier to determine the base URI configuration.
+     * @return A Response object containing the API response data.
+     * @throws IOException if an I/O exception occurs while fetching data from an Excel source.
+     */
+    public Response serverRequestWithUrlEncodedBody(String requestBody, String requestHeader, String requestQueryParameters, String endPoint, String requestType, String excelKey, String server) throws IOException {
+        ArrayList<String> data1 = (ArrayList<String>) excelUtil.getData(excelKey);
+        String baseUri = ConfigUtil.baseUri(server);
+        String ep = ConfigUtil.getEndpoint(endPoint);
+        System.out.println("base: " + baseUri + ", endpoint: " + ep);
+        Map<String, String> header = jsonToMap(requestHeader);
+        Map<String, String> body = jsonToMap(requestBody);
+        Map<String, String> queryParameters=jsonToMap(requestQueryParameters);
+        StringBuilder postData = new StringBuilder();
 
-        public CustomDataObject(String time, String code) {
-            this.time = time;
-            this.code = code;
+        for (Map.Entry<String, String> entry : body.entrySet()) {
+            if (postData.length() != 0) {
+                postData.append('&');
+            }
+            postData.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+            postData.append('=');
+            postData.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+        }
+        RequestSpecification request = RestAssured.given()
+                .baseUri(baseUri)
+                .queryParams(queryParameters)
+                .headers(header)
+                .body(postData.toString())
+                ;
+
+        Response response;
+        System.out.println("URL ENCODED BODY"+postData);
+        if (data1.get(4) != null && !data1.get(4).isEmpty()) {
+            JsonObject json = JsonParser.parseString(data1.get(4)).getAsJsonObject();
+            String username = json.get("Username").getAsString();
+            String password = json.get("Password").getAsString();
+            boolean isPreemptive = json.has("Preemptive") && json.get("Preemptive").getAsBoolean();
+
+            if (isPreemptive) {
+                response = sendRequestWithPreemptiveAuth(request, ep, requestType, username, password);
+            } else {
+                response = sendRequestWithBasicAuth(request, ep, requestType, username, password);
+            }
+        } else {
+            response = sendRequestWithoutAuth(request, ep, requestType);
         }
 
-        @Override
-        public String toString() {
-            return "Time: " + time + " | Code: " + code;
+        return response;
+    }
+
+    /**
+     * A utility method for getting value from a JSON response based on the provided key.
+     *
+     * @param apiResponse The JSON response from which to extract the value.
+     * @param key The key specifying the value to be extracted.
+     * @return The extracted value corresponding to the provided key.
+     */
+    public String resolveJSONArray(String apiResponse, String key){
+
+        if (key.charAt(0) == '['){
+            String index = "";
+            String newKey = "";
+            Boolean isKey = false;
+            char[] keyArray = key.toCharArray();
+            for(int i = 1; i < keyArray.length; i++){
+                if (!isKey && keyArray[i] == ']') {
+                    isKey = true;
+                    i = i + 1;
+                    continue;
+                }
+
+                if (isKey){
+                    newKey += keyArray[i];
+                } else {
+                    index += keyArray[i];
+                }
+
+            }
+
+            int x = Integer.parseInt(index);
+            JSONArray jsonArr = new JSONArray(apiResponse);
+            Object obj = jsonArr.get(x);
+            JSONObject jo = new JSONObject( obj.toString() );
+
+            return jo.get(newKey).toString();
         }
+        else {
+            JSONObject jo = new JSONObject( apiResponse );
+
+            return jo.get(key).toString();
+        }
+
+    }
+
+    /**
+     * Sends an API request with no authentication credentials,
+     * using the provided RequestSpecification, endpoint, and HTTP method.
+     *
+     * @param request  The RequestSpecification containing request details.
+     * @param endPoint The endpoint of the API request.
+     * @param requestType          The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @return A Response object containing the API response data.
+     */
+    private Response sendRequestWithoutAuth(RequestSpecification request, String endPoint, String requestType) {
+        return sendRequest(request, endPoint, requestType);
+    }
+
+    /**
+     * Sends a preemptively authenticated API request using basic authentication,
+     * using the provided RequestSpecification, endpoint, HTTP request type, username, and password.
+     *
+     * @param request     The RequestSpecification containing request details.
+     * @param endPoint    The endpoint of the API request.
+     * @param requestType The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @param username    The username for basic authentication.
+     * @param password    The password for basic authentication.
+     * @return A Response object containing the API response data.
+     */
+    private Response sendRequestWithPreemptiveAuth(RequestSpecification request, String endPoint, String requestType, String username, String password) {
+        request = request.auth().preemptive().basic(username, password);
+        return sendRequest(request, endPoint, requestType);
+    }
+
+    /**
+     * Sends a API request using basic authentication,
+     * using the provided RequestSpecification, endpoint, HTTP request type, username, and password.
+     *
+     * @param request     The RequestSpecification containing request details.
+     * @param endPoint    The endpoint of the API request.
+     * @param requestType The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @param username    The username for basic authentication.
+     * @param password    The password for basic authentication.
+     * @return A Response object containing the API response data.
+     */
+    private Response sendRequestWithBasicAuth(RequestSpecification request, String endPoint, String requestType, String username, String password) {
+        request = request.auth().basic(username, password);
+        return sendRequest(request, endPoint, requestType);
+    }
+
+    /**
+     * Sends a API request using the provided RequestSpecification,
+     * endpoint, and HTTP method type, and returns the API response.
+     *
+     * @param request  The RequestSpecification containing request details.
+     * @param endpoint The endpoint of the API request.
+     * @param method   The HTTP request method type (e.g., GET, POST, PUT, DELETE).
+     * @return A Response object containing the API response data.
+     * @throws IllegalArgumentException if the provided method is invalid.
+     */
+    private Response sendRequest(RequestSpecification request, String endpoint, String method) {
+        Response response;
+
+        if (method.equalsIgnoreCase("post")) {
+            response = request.post(endpoint);
+        } else if (method.equalsIgnoreCase("get")) {
+            response = request.get(endpoint);
+        } else if (method.equalsIgnoreCase("delete")) {
+            response = request.delete(endpoint);
+        } else if (method.equalsIgnoreCase("put")) {
+            response = request.put(endpoint);
+        } else {
+            throw new IllegalArgumentException("Invalid request type: " + method);
+        }
+
+        return response;
     }
 }
